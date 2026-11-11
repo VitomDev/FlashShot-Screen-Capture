@@ -1,0 +1,14 @@
+{
+  "appId": "{FFE067A3-21B6-42AD-8572-F42334E6DB65}",
+  "name": "FlashShot Screen Capture",
+  "category": "Images",
+  "icon": "assets/flashshot.png",
+  "screenshots": [
+    "assets/screenshots/screenshot-1.png"
+  ],
+  "installer": "FlashShotSetup.exe",
+  "exe": "FlashShot.exe",
+  "settings": [
+    "HKCU\Software\FlashShot Screen Capture"
+  ]
+}

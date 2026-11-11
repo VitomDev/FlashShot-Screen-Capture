@@ -1,0 +1,32 @@
+#include <windows.h>
+#include "resource.h"
+#include "../version.h"
+
+IDI_FLASHSHOT ICON "../../assets/flashshot.ico"
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "FlashShot.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION FLASHSHOT_VERSION_MAJOR, FLASHSHOT_VERSION_MINOR, FLASHSHOT_VERSION_PATCH, 0
+PRODUCTVERSION FLASHSHOT_VERSION_MAJOR, FLASHSHOT_VERSION_MINOR, FLASHSHOT_VERSION_PATCH, 0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "VitomDev"
+            VALUE "FileDescription", "FlashShot Screen Capture"
+            VALUE "FileVersion", FLASHSHOT_VERSION_STRING
+            VALUE "InternalName", "FlashShot"
+            VALUE "LegalCopyright", "Copyright (c) 2026 VitomDev. MIT License."
+            VALUE "OriginalFilename", "FlashShot.exe"
+            VALUE "ProductName", "FlashShot Screen Capture"
+            VALUE "ProductVersion", FLASHSHOT_VERSION_STRING
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
