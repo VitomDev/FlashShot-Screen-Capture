@@ -9,6 +9,6 @@
   "installer": "FlashShotSetup.exe",
   "exe": "FlashShot.exe",
   "settings": [
-    "HKCU\Software\FlashShot Screen Capture"
+    "HKCU\\Software\\FlashShot Screen Capture"
   ]
 }
