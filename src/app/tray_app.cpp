@@ -1,4 +1,5 @@
 #include "app/tray_app.h"
+#include "app/vitool_tray.h"
 
 #include "app/resource.h"
 #include "app/screen_capture.h"
@@ -71,9 +72,9 @@ void TrayApp::AddTrayIcon() {
     icon_.uCallbackMessage = WM_APP_TRAY;
     LoadIconMetric(instance_, MAKEINTRESOURCEW(IDI_FLASHSHOT), LIM_SMALL, &icon_.hIcon);
     wcscpy_s(icon_.szTip, L"FlashShot Screen Capture");
-    Shell_NotifyIconW(NIM_ADD, &icon_);
+    vitool_tray::NotifyIcon(NIM_ADD, &icon_);
     icon_.uVersion = NOTIFYICON_VERSION_4;
-    Shell_NotifyIconW(NIM_SETVERSION, &icon_);
+    vitool_tray::NotifyIcon(NIM_SETVERSION, &icon_);
 }
 
 void TrayApp::ShowTrayMenu(POINT point) {
@@ -108,7 +109,7 @@ void TrayApp::Notify(const std::wstring& message, BalloonAction action) {
     data.dwInfoFlags = NIIF_INFO | NIIF_RESPECT_QUIET_TIME;
     wcscpy_s(data.szInfoTitle, L"FlashShot Screen Capture");
     wcsncpy_s(data.szInfo, message.c_str(), _TRUNCATE);
-    Shell_NotifyIconW(NIM_MODIFY, &data);
+    vitool_tray::NotifyIcon(NIM_MODIFY, &data);
 }
 
 void TrayApp::ShowHome() {
@@ -175,7 +176,7 @@ void TrayApp::Exit() {
     toast_.Destroy();
     home_.Destroy();
     UnregisterHotKey(window_, kCaptureHotkeyId);
-    Shell_NotifyIconW(NIM_DELETE, &icon_);
+    vitool_tray::NotifyIcon(NIM_DELETE, &icon_);
     if (icon_.hIcon) DestroyIcon(icon_.hIcon);
     settings_.Save();
     DestroyWindow(window_);
@@ -252,6 +253,7 @@ LRESULT CALLBACK TrayApp::WindowProc(HWND window, UINT message, WPARAM wParam, L
 }
 
 LRESULT TrayApp::HandleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (vitool_tray::HandleMessage(message, wParam)) return 0;
     if (message == taskbarCreatedMessage_ && taskbarCreatedMessage_ != 0) {
         AddTrayIcon();  // Explorer restarted.
         return 0;
