@@ -47,4 +47,16 @@ DWORD Pack(const Hotkey& hotkey) { return MAKELONG(hotkey.key, hotkey.modifiers)
 
 Hotkey Unpack(DWORD value) { return {HIWORD(value), LOWORD(value)}; }
 
+PrintScreenFilter::Action PrintScreenFilter::OnKey(bool down, bool leave) {
+    if (!down) {
+        const bool taken = taken_;
+        taken_ = false;
+        return taken ? Action::Swallow : Action::Pass;
+    }
+    if (taken_) return Action::Swallow;  // Auto-repeat while held: one capture per press
+    if (leave) return Action::Pass;
+    taken_ = true;
+    return Action::Capture;
+}
+
 }  // namespace flashshot

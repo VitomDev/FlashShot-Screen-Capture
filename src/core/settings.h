@@ -38,8 +38,10 @@ bool IsAutostartEnabled(const wchar_t* valueName = kRunValue);
 bool SetAutostartEnabled(bool enabled, const std::wstring& exePath, const wchar_t* valueName = kRunValue);
 std::wstring AutostartCommand(const std::wstring& exePath);
 
-// Windows 11 can open the Snipping Tool with Print Screen, which keeps the
-// key from any other app.
+// Windows 11 can open the Snipping Tool with Print Screen, which takes the
+// key before any registered shortcut. It is on by default on Windows 11,
+// where the setting is usually not in the registry at all.
 bool IsPrintScreenTakenBySnipping();
+bool IsWindows11OrNewer();
 
 }  // namespace flashshot

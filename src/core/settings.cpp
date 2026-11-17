@@ -130,12 +130,25 @@ bool SetAutostartEnabled(bool enabled, const std::wstring& exePath, const wchar_
     return status == ERROR_SUCCESS;
 }
 
+bool IsWindows11OrNewer() {
+    // RtlGetVersion reports the real version, whatever the manifest declares.
+    using RtlGetVersionFunction = LONG(WINAPI*)(OSVERSIONINFOW*);
+    const auto getVersion =
+        reinterpret_cast<RtlGetVersionFunction>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion"));
+    OSVERSIONINFOW version{sizeof(version)};
+    if (!getVersion || getVersion(&version) != 0) return false;
+    return version.dwMajorVersion > 10 || (version.dwMajorVersion == 10 && version.dwBuildNumber >= 22000);
+}
+
 bool IsPrintScreenTakenBySnipping() {
     DWORD enabled = 0;
     DWORD size = sizeof(enabled);
-    return RegGetValueW(HKEY_CURRENT_USER, L"Control Panel\\Keyboard", L"PrintScreenKeyForSnippingEnabled", RRF_RT_REG_DWORD,
-                        nullptr, &enabled, &size) == ERROR_SUCCESS &&
-           enabled != 0;
+    if (RegGetValueW(HKEY_CURRENT_USER, L"Control Panel\\Keyboard", L"PrintScreenKeyForSnippingEnabled", RRF_RT_REG_DWORD,
+                     nullptr, &enabled, &size) == ERROR_SUCCESS) {
+        return enabled != 0;
+    }
+    // Never changed by the user: Windows 11 turns it on, Windows 10 leaves it off.
+    return IsWindows11OrNewer();
 }
 
 }  // namespace flashshot

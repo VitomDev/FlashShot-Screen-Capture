@@ -506,6 +506,33 @@ TEST(PrintScreenIsAValidShortcutOnItsOwn) {
     CHECK(ToString(Hotkey{MOD_CONTROL | MOD_SHIFT, 'S'}) == L"Ctrl + Shift + S");
 }
 
+TEST(PrintScreenHookTakesOnlyThePlainKey) {
+    using Action = PrintScreenFilter::Action;
+    PrintScreenFilter filter;
+    // One capture per press, auto-repeat included; the release is taken too.
+    CHECK(filter.OnKey(true, false) == Action::Capture);
+    CHECK(filter.OnKey(true, false) == Action::Swallow);
+    CHECK(filter.OnKey(false, false) == Action::Swallow);
+    CHECK(filter.OnKey(true, false) == Action::Capture);
+    // A modifier pressed in between does not hand the release to Windows.
+    CHECK(filter.OnKey(false, true) == Action::Swallow);
+    // Alt+Print Screen and the like stay with Windows, press and release.
+    CHECK(filter.OnKey(true, true) == Action::Pass);
+    CHECK(filter.OnKey(false, false) == Action::Pass);
+    // A lone release (the press happened before the hook) is left alone.
+    CHECK(filter.OnKey(false, false) == Action::Pass);
+}
+
+TEST(Windows11IsRecognized) {
+    wchar_t build[16]{};
+    DWORD size = sizeof(build);
+    if (RegGetValueW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", L"CurrentBuildNumber", RRF_RT_REG_SZ,
+                     nullptr, build, &size) != ERROR_SUCCESS) {
+        SKIP("build number not available");
+    }
+    CHECK(IsWindows11OrNewer() == (_wtoi(build) >= 22000));
+}
+
 TEST(SettingsRoundTrip) {
     RegDeleteTreeW(HKEY_CURRENT_USER, kTestSettingsKey);
     Settings settings;
@@ -579,6 +606,18 @@ int CountOverlays() {
 
 constexpr UINT WM_APP_NEW_CAPTURE = WM_APP + 20;
 
+void PressPrintScreen() {
+    INPUT keys[2]{};
+    for (INPUT& key : keys) {
+        key.type = INPUT_KEYBOARD;
+        key.ki.wVk = VK_SNAPSHOT;
+        key.ki.wScan = 0x37;
+        key.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+    }
+    keys[1].ki.dwFlags |= KEYEVENTF_KEYUP;
+    SendInput(2, keys, sizeof(INPUT));
+}
+
 }  // namespace
 
 TEST(RepeatedCapturesLeaveNoWindowsBehind) {
@@ -608,6 +647,27 @@ TEST(RepeatedCapturesLeaveNoWindowsBehind) {
     CHECK(WaitForSingleObject(second, 5000) == WAIT_OBJECT_0);
     CloseHandle(second);
 
+    PostMessageW(tray, WM_CLOSE, 0, 0);
+    CHECK(WaitForSingleObject(process, 5000) == WAIT_OBJECT_0);
+    CloseHandle(process);
+}
+
+// Windows 11 opens the Snipping Tool with Print Screen even when an app has
+// registered the key; FlashShot must still get it.
+TEST(PrintScreenOpensACapture) {
+    if (!fs::exists(buildDir / L"FlashShot.exe")) SKIP("FlashShot.exe not built");
+    if (FindTrayWindow()) SKIP("FlashShot is already running");
+    if (!(Settings::Load().captureHotkey == kPrintScreen)) SKIP("the capture shortcut is not Print Screen");
+    HANDLE process = StartApp(L"--background");
+    CHECK(process);
+    HWND tray = nullptr;
+    CHECK(WaitFor([&] { return (tray = FindTrayWindow()) != nullptr; }));
+    for (int round = 0; round < 2; ++round) {
+        PressPrintScreen();
+        CHECK(WaitFor([] { return CountOverlays() == 1; }));
+        PostMessageW(FindWindowW(L"FlashShotOverlay", nullptr), WM_KEYDOWN, VK_ESCAPE, 0);
+        CHECK(WaitFor([] { return CountOverlays() == 0; }));
+    }
     PostMessageW(tray, WM_CLOSE, 0, 0);
     CHECK(WaitForSingleObject(process, 5000) == WAIT_OBJECT_0);
     CloseHandle(process);

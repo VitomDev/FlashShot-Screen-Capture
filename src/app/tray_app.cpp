@@ -15,6 +15,7 @@ namespace flashshot {
 namespace {
 
 constexpr UINT WM_APP_TRAY = WM_APP + 10;
+constexpr UINT WM_APP_PRINT_SCREEN = WM_APP + 11;  // From the Print Screen hook
 constexpr int kCaptureHotkeyId = 1;
 constexpr UINT_PTR kCaptureTimer = 1;
 constexpr UINT kAfterWindowDelay = 250;  // Long enough for menus and windows to fade out
@@ -119,14 +120,31 @@ void TrayApp::ShowHome() {
 
 // --- Shortcut and settings ---------------------------------------------------
 
+// Print Screen on its own is taken with the keyboard hook, which comes before
+// the Snipping Tool and other apps; other shortcuts are registered as usual.
 std::wstring TrayApp::RegisterShortcut(const Hotkey& hotkey) {
-    UnregisterHotKey(window_, kCaptureHotkeyId);
-    if (RegisterHotKey(window_, kCaptureHotkeyId, hotkey.modifiers | MOD_NOREPEAT, hotkey.key)) return {};
-    if (hotkey == Hotkey{0, VK_SNAPSHOT} && IsPrintScreenTakenBySnipping()) {
+    ReleaseShortcut();
+    if (hotkey == kPrintScreen && printScreenHook_.Start(window_, WM_APP_PRINT_SCREEN, false)) return {};
+    const bool registered = RegisterHotKey(window_, kCaptureHotkeyId, hotkey.modifiers | MOD_NOREPEAT, hotkey.key) != FALSE;
+    // Registering Print Screen works even then, but Windows keeps the key.
+    if (hotkey == kPrintScreen && IsPrintScreenTakenBySnipping()) {
         return L"Print Screen opens the Windows Snipping Tool. Turn that off in Windows Settings > Accessibility > Keyboard, "
                L"or choose another shortcut.";
     }
+    if (registered) return {};
     return ToString(hotkey) + L" is already used by another app. Choose another shortcut.";
+}
+
+void TrayApp::ReleaseShortcut() {
+    UnregisterHotKey(window_, kCaptureHotkeyId);
+    printScreenHook_.Stop();
+}
+
+void TrayApp::PauseShortcut() {
+    ReleaseShortcut();
+    // Only so that Print Screen reaches the Settings window rather than the
+    // Snipping Tool; the key is handed to Settings, never captured.
+    printScreenHook_.Start(window_, WM_APP_PRINT_SCREEN, true);
 }
 
 bool TrayApp::ApplySettings(const Settings& settings, bool autostart, std::wstring& error) {
@@ -134,7 +152,7 @@ bool TrayApp::ApplySettings(const Settings& settings, bool autostart, std::wstri
     // it closes, so a shortcut that fails here never loses the working one.
     error = RegisterShortcut(settings.captureHotkey);
     if (!error.empty()) {
-        UnregisterHotKey(window_, kCaptureHotkeyId);
+        PauseShortcut();
         return false;
     }
     settings_.captureHotkey = settings.captureHotkey;
@@ -154,8 +172,7 @@ bool TrayApp::ApplySettings(const Settings& settings, bool autostart, std::wstri
 void TrayApp::OpenSettings() {
     if (overlay_ || settingsOpen_) return;
     settingsOpen_ = true;
-    // Pause the shortcut so it can be recorded in Settings.
-    UnregisterHotKey(window_, kCaptureHotkeyId);
+    PauseShortcut();
     ShowSettingsDialog(instance_, nullptr, settings_,
                        [this](const Settings& settings, bool autostart, std::wstring& error) { return ApplySettings(settings, autostart, error); });
     settingsOpen_ = false;
@@ -175,7 +192,7 @@ void TrayApp::Exit() {
     overlay_.reset();
     toast_.Destroy();
     home_.Destroy();
-    UnregisterHotKey(window_, kCaptureHotkeyId);
+    ReleaseShortcut();
     vitool_tray::NotifyIcon(NIM_DELETE, &icon_);
     if (icon_.hIcon) DestroyIcon(icon_.hIcon);
     settings_.Save();
@@ -264,6 +281,15 @@ LRESULT TrayApp::HandleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         case WM_APP_NEW_CAPTURE:
             RequestCapture(0);
+            return 0;
+        case WM_APP_PRINT_SCREEN:
+            if (settingsOpen_) {
+                // Settings may be recording a shortcut: give it the key the
+                // hook took, as the release Print Screen normally reports.
+                if (HWND focus = GetFocus()) PostMessageW(focus, WM_KEYUP, VK_SNAPSHOT, 0xC1370001);
+            } else {
+                RequestCapture(0);
+            }
             return 0;
         case WM_TIMER:
             if (wParam == kCaptureTimer) {

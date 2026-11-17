@@ -32,6 +32,7 @@ add_executable(FlashShot WIN32
     src/app/capture_overlay.cpp
     src/app/home_window.cpp
     src/app/main.cpp
+    src/app/print_screen_hook.cpp
     src/app/screen_capture.cpp
     src/app/settings_dialog.cpp
     src/app/theme.cpp

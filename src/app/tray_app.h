@@ -2,6 +2,7 @@
 
 #include "app/capture_overlay.h"
 #include "app/home_window.h"
+#include "app/print_screen_hook.h"
 #include "app/toast.h"
 #include "core/settings.h"
 
@@ -37,8 +38,11 @@ private:
     void Notify(const std::wstring& message, BalloonAction action = BalloonAction::None);
     void ShowHome();
 
-    // Registers the capture shortcut; empty on success, else what went wrong.
+    // Takes the capture shortcut; empty on success, else what went wrong.
     std::wstring RegisterShortcut(const Hotkey& hotkey);
+    void ReleaseShortcut();
+    // Turns the shortcut off while Settings is open, so it can be recorded.
+    void PauseShortcut();
     bool ApplySettings(const Settings& settings, bool autostart, std::wstring& error);
     void OpenSettings();
     void ToggleAutostart();
@@ -60,6 +64,7 @@ private:
     bool capturePending_ = false;
     bool exiting_ = false;
 
+    PrintScreenHook printScreenHook_;
     std::unique_ptr<CaptureOverlay> overlay_;
     HWND previousForeground_ = nullptr;
     HomeWindow home_;

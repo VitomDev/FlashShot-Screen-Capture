@@ -12,7 +12,7 @@ No editor window to open, no account, no upload: everything happens right on top
 
 ## 🚀 Features
 
-- ⌨️ **One shortcut from any app**: Print Screen by default, change it in Settings
+- ⌨️ **One shortcut from any app**: Print Screen by default, even where Windows 11 gives it to the Snipping Tool; change it in Settings
 - 🧊 **Frozen screen**: the desktop is captured first, so videos and animations stop while you select
 - 🖥️ **Every monitor**: selections can cross screens, also with monitors left of or above the main one and different scaling
 - ✂️ **Precise region**: drag in any direction, resize from the corners and edges, move it with the mouse or one pixel at a time with the arrow keys, live size in pixels
@@ -43,7 +43,7 @@ Download `FlashShotSetup.exe` from [Releases](https://github.com/VitomDev/FlashS
 - FlashShot opens a small window with **New capture** and **Settings**, then keeps running in the notification area
 - It starts with Windows from then on
 
-> 💡 **Print Screen busy?** Windows 11 can use Print Screen for its Snipping Tool, and other capture apps take it too. FlashShot tells you when that happens: turn that option off in *Windows Settings → Accessibility → Keyboard*, close the other app, or pick another shortcut in FlashShot's Settings.
+> 💡 **Print Screen and the Snipping Tool:** Windows 11 opens its Snipping Tool with Print Screen, but while FlashShot's shortcut is Print Screen, FlashShot gets the key first; there is nothing to turn off. Alt+Print Screen and Win+Print Screen keep working as usual, and the Snipping Tool is still on Win+Shift+S. To give Print Screen back to Windows or another app, pick another shortcut in FlashShot's Settings.
 
 Uninstalling (Settings → Apps) removes FlashShot, its startup entry and its settings.
 
